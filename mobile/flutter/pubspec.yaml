@@ -1,0 +1,15 @@
+name: utl_hybrid_ai_shield
+description: UTL Hybrid AI Shield — Multiplatformní překladač dotazníků nad Firebase AI Logic, Ada/SPARK a Rustem.
+version: 1.0.0+1
+
+environment:
+  sdk: ">=3.5.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  firebase_core: ^3.10.0
+  firebase_ai: ^2.0.0
+  firebase_app_check: ^0.3.2
+  firebase_remote_config: ^5.3.0
+  cloud_firestore: ^5.6.0

@@ -1,0 +1,15 @@
+[package]
+name = "utl_hybrid_shield_core"
+version = "1.0.0"
+edition = "2021"
+description = "Kryptografické a směrovací jádro UTL Hybrid AI Shield bez externích závislostí + GNAT SPARK FFI"
+
+[features]
+default = []
+gnat_ffi = []
+
+[profile.release]
+opt-level = "z"
+lto = true
+strip = true
+codegen-units = 1

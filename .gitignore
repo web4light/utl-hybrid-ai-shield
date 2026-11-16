@@ -1,0 +1,9 @@
+node_modules/
+dist/
+spark/obj/
+rust/target/
+.firebase/
+.dart_tool/
+build/
+*.tmp
+.DS_Store
