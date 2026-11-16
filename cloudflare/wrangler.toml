@@ -7,12 +7,10 @@ routes = [
   { pattern = "api.web4light.online/*", zone_id = "8c1b0eab6ac8c2a2bfddb9393732cd17" }
 ]
 
-# Po spuštění `npx wrangler kv namespace create translation-cache` a `node-registry`
-# sem doplň vygenerovaná ID a odkomentuj:
-# [[kv_namespaces]]
-# binding = "TRANSLATION_CACHE"
-# id = "<DOPLNIT_ID>"
-#
-# [[kv_namespaces]]
-# binding = "NODE_REGISTRY"
-# id = "<DOPLNIT_ID>"
+[[kv_namespaces]]
+binding = "TRANSLATION_CACHE"
+id = "658e3e0b784d4f6da90dbd9d288f6bcf"
+
+[[kv_namespaces]]
+binding = "NODE_REGISTRY"
+id = "db808b7ce18b4d829ef8eaba77e6be7b"
