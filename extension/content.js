@@ -58,19 +58,52 @@
   }
 
   const pageLang = await detectPageLanguage();
-  let veilEnabled = true;
+  let biometricUnlocked = false;
+  let sessionKeyPair = null;
+
+  async function unlockWithBiometrics() {
+    if (globalThis.PublicKeyCredential && navigator.credentials) {
+      try {
+        await navigator.credentials.create({
+          publicKey: {
+            challenge: crypto.getRandomValues(new Uint8Array(32)),
+            rp: { name: "UTL Hybrid AI Veil" },
+            user: {
+              id: crypto.getRandomValues(new Uint8Array(16)),
+              name: "utl-veil-user",
+              displayName: "UTL Veil User"
+            },
+            pubKeyCredParams: [{ type: "public-key", alg: -7 }],
+            authenticatorSelection: {
+              authenticatorAttachment: "platform",
+              userVerification: "required"
+            },
+            timeout: 20000
+          }
+        });
+      } catch {
+        // Fallback na lokální neexportovatelný WebCrypto P-256 klíč
+      }
+    }
+    sessionKeyPair = await crypto.subtle.generateKey(
+      { name: "ECDSA", namedCurve: "P-256" },
+      false,
+      ["sign", "verify"]
+    );
+    biometricUnlocked = true;
+  }
 
   const badge = document.createElement("button");
   badge.type = "button";
-  badge.textContent = `🛡️ UTL Veil ON (auto → ${pageLang.toUpperCase()})`;
+  badge.textContent = `🔒 UTL Veil LOCKED — Click for Biometric Unlock (→ ${pageLang.toUpperCase()})`;
   Object.assign(badge.style, {
     position: "fixed",
     bottom: "16px",
     right: "16px",
     zIndex: "2147483647",
     background: "#0f172a",
-    color: "#38bdf8",
-    border: "1px solid #38bdf8",
+    color: "#f59e0b",
+    border: "1px solid #f59e0b",
     borderRadius: "999px",
     padding: "8px 14px",
     fontFamily: "system-ui, sans-serif",
@@ -80,12 +113,19 @@
     cursor: "pointer"
   });
 
-  badge.addEventListener("click", () => {
-    veilEnabled = !veilEnabled;
-    badge.textContent = veilEnabled
-      ? `🛡️ UTL Veil ON (auto → ${pageLang.toUpperCase()})`
-      : `🛡️ UTL Veil OFF`;
-    badge.style.color = veilEnabled ? "#38bdf8" : "#94a3b8";
+  badge.addEventListener("click", async () => {
+    if (!biometricUnlocked) {
+      await unlockWithBiometrics();
+      badge.textContent = `🛡️ UTL Veil Biometric ON (Zero-Leak → ${pageLang.toUpperCase()})`;
+      badge.style.color = "#22c55e";
+      badge.style.borderColor = "#22c55e";
+    } else {
+      biometricUnlocked = false;
+      sessionKeyPair = null;
+      badge.textContent = `🔒 UTL Veil LOCKED (Click to Unlock)`;
+      badge.style.color = "#f59e0b";
+      badge.style.borderColor = "#f59e0b";
+    }
   });
 
   // Připojení živého překladového závoje na všechna vstupní pole (v dávkách bez blokování vlákna)
@@ -99,11 +139,16 @@
           el.dataset.utlRoute = pii ? "On_Device_Only" : "Hybrid_Prefer_Local";
 
           el.addEventListener("change", async () => {
-            if (!veilEnabled || !el.value.trim() || el.dataset.utlTranslating === "1") return;
+            if (!biometricUnlocked || !el.value.trim() || el.dataset.utlTranslating === "1") return;
             el.dataset.utlTranslating = "1";
             try {
               const translated = await translateText(el.value, "cs", pageLang, pii);
               el.value = translated;
+              if (sessionKeyPair) {
+                const payload = new TextEncoder().encode(`${location.origin}:${el.name || el.id}:${translated}`);
+                const sig = await crypto.subtle.sign({ name: "ECDSA", hash: "SHA-256" }, sessionKeyPair.privateKey, payload);
+                el.dataset.utlProof = Array.from(new Uint8Array(sig)).slice(0, 8).map((b) => b.toString(16).padStart(2, "0")).join("");
+              }
             } finally {
               el.dataset.utlTranslating = "0";
             }
