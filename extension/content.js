@@ -167,17 +167,22 @@
     await new Promise((resolve) => {
       requestAnimationFrame(() => {
         inputs.slice(i, i + BATCH).forEach((el) => {
-          const isTrap = MarcusAureliusDecimus.isHiddenTrap(el) || MarcusAureliusDecimus.hasCrossOriginAction(el.form);
-          if (isTrap) {
+          if (MarcusAureliusDecimus.isHiddenTrap(el)) {
             blockedTraps += 1;
             el.dataset.utlRoute = "Blocked_By_Marcus_Aurelius";
             el.style.outline = "2px solid #ef4444";
             return;
           }
 
+          const crossOrigin = MarcusAureliusDecimus.hasCrossOriginAction(el.form);
           const pii = isSensitiveField(el);
-          el.style.outline = pii ? "2px solid #22c55e" : "2px solid #38bdf8";
-          el.dataset.utlRoute = pii ? "On_Device_Only" : "Hybrid_Prefer_Local";
+          if (crossOrigin) {
+            el.style.outline = "2px solid #f59e0b";
+            el.title = `⚠️ Marcus Aurelius: Formulář odesílá na cizí doménu (${el.form?.action || "cross-origin"}), ale zůstává hlídaný lokálně.`;
+          } else {
+            el.style.outline = pii ? "2px solid #22c55e" : "2px solid #38bdf8";
+          }
+          el.dataset.utlRoute = (pii || crossOrigin) ? "On_Device_Only" : "Hybrid_Prefer_Local";
 
           el.addEventListener("change", async () => {
             if (!biometricUnlocked || !el.value.trim() || el.dataset.utlTranslating === "1") return;
