@@ -1,0 +1,18 @@
+name = "web4-coordinator"
+main = "worker.js"
+compatibility_date = "2026-11-01"
+account_id = "d9b11b2c34fea3bee637b0c57491e379"
+
+routes = [
+  { pattern = "api.web4light.online/*", zone_id = "8c1b0eab6ac8c2a2bfddb9393732cd17" }
+]
+
+# Po spuštění `npx wrangler kv namespace create translation-cache` a `node-registry`
+# sem doplň vygenerovaná ID a odkomentuj:
+# [[kv_namespaces]]
+# binding = "TRANSLATION_CACHE"
+# id = "<DOPLNIT_ID>"
+#
+# [[kv_namespaces]]
+# binding = "NODE_REGISTRY"
+# id = "<DOPLNIT_ID>"
