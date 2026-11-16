@@ -1,0 +1,16 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Každý uživatel smí číst a zapisovat jen své vlastní kryptograficky podepsané šablony formulářů
+    match /users/{userId}/form_templates/{docId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Veřejné šablony jazyků pouze pro čtení
+    match /public_language_packs/{packId} {
+      allow read: if true;
+      allow write: if false;
+    }
+  }
+}
