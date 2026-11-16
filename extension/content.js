@@ -34,6 +34,38 @@
     return /pass|ssn|id|birth|card|iban|email|phone|name|passport|tax/.test(hint);
   }
 
+  /** Obranný agent Marcus Aurelius Decimus: detekuje skryté injektory, exfiltrační formuláře a prompt injection. */
+  const MarcusAureliusDecimus = {
+    isHiddenTrap(el) {
+      const style = globalThis.getComputedStyle(el);
+      const rect = el.getBoundingClientRect();
+      return (
+        style.display === "none" ||
+        style.visibility === "hidden" ||
+        Number(style.opacity) === 0 ||
+        rect.width <= 1 ||
+        rect.height <= 1 ||
+        rect.left < -1000
+      );
+    },
+    hasCrossOriginAction(form) {
+      if (!form || !form.action) return false;
+      try {
+        return new URL(form.action, location.href).origin !== location.origin;
+      } catch {
+        return true;
+      }
+    },
+    sanitizePromptInjection(text) {
+      const pattern = /(ignore\s+(all\s+)?previous\s+instructions|system\s+prompt|exfiltrate|reveal\s+secrets|<\s*script|javascript:)/gi;
+      const detected = pattern.test(text);
+      return {
+        clean: text.replace(pattern, "[BLOCKED_BY_MARCUS_AURELIUS]"),
+        detected
+      };
+    }
+  };
+
   async function translateText(text, sourceLang, targetLang, isPii) {
     if (!text.trim() || sourceLang === targetLang) return text;
     if ("Translator" in globalThis) {
@@ -129,11 +161,20 @@
   });
 
   // Připojení živého překladového závoje na všechna vstupní pole (v dávkách bez blokování vlákna)
+  let blockedTraps = 0;
   const BATCH = 20;
   for (let i = 0; i < inputs.length; i += BATCH) {
     await new Promise((resolve) => {
       requestAnimationFrame(() => {
         inputs.slice(i, i + BATCH).forEach((el) => {
+          const isTrap = MarcusAureliusDecimus.isHiddenTrap(el) || MarcusAureliusDecimus.hasCrossOriginAction(el.form);
+          if (isTrap) {
+            blockedTraps += 1;
+            el.dataset.utlRoute = "Blocked_By_Marcus_Aurelius";
+            el.style.outline = "2px solid #ef4444";
+            return;
+          }
+
           const pii = isSensitiveField(el);
           el.style.outline = pii ? "2px solid #22c55e" : "2px solid #38bdf8";
           el.dataset.utlRoute = pii ? "On_Device_Only" : "Hybrid_Prefer_Local";
@@ -142,7 +183,8 @@
             if (!biometricUnlocked || !el.value.trim() || el.dataset.utlTranslating === "1") return;
             el.dataset.utlTranslating = "1";
             try {
-              const translated = await translateText(el.value, "cs", pageLang, pii);
+              const sanitized = MarcusAureliusDecimus.sanitizePromptInjection(el.value);
+              const translated = await translateText(sanitized.clean, "cs", pageLang, pii);
               el.value = translated;
               if (sessionKeyPair) {
                 const payload = new TextEncoder().encode(`${location.origin}:${el.name || el.id}:${translated}`);
@@ -157,6 +199,9 @@
         resolve();
       });
     });
+  }
+  if (blockedTraps > 0) {
+    badge.title = `Marcus Aurelius Decimus zablokoval ${blockedTraps} podezřelých/skrytých polí.`;
   }
 
   document.body.appendChild(badge);
