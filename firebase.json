@@ -2,12 +2,24 @@
   "firestore": {
     "rules": "firestore.rules"
   },
-  "hosting": {
-    "public": "web",
-    "ignore": [
-      "firebase.json",
-      "**/.*",
-      "**/node_modules/**"
-    ]
-  }
+  "hosting": [
+    {
+      "site": "utl-hybrid-ai-shield-256",
+      "public": "web",
+      "ignore": [
+        "firebase.json",
+        "**/.*",
+        "**/node_modules/**"
+      ]
+    },
+    {
+      "site": "utl-hybrid-ai-shield-26",
+      "public": "web",
+      "ignore": [
+        "firebase.json",
+        "**/.*",
+        "**/node_modules/**"
+      ]
+    }
+  ]
 }
