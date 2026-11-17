@@ -4,37 +4,168 @@ const MAX_ON_DEVICE_CHARS = 4000;
 const CLOUDFLARE_COORDINATOR_URL = "https://api.web4light.online";
 
 /**
- * Optional Firebase configuration (#BuildHybridAI 2026).
- * When provided, initializes Firebase App + Firebase AI Logic (Hybrid Inference SDK).
+ * Firebase configuration (#BuildHybridAI 2026 — utl-hybrid-ai-shield-26).
  */
+const DEFAULT_FIREBASE_CONFIG = {
+  projectId: "utl-hybrid-ai-shield-26",
+  appId: "1:238775299331:web:f0587b7b83b886117c4d36",
+  storageBucket: "utl-hybrid-ai-shield-26.firebasestorage.app",
+  apiKey: "AIzaSyDStQ63zP1RnhqUSGyrwRICmhUUJS2vq3Q",
+  authDomain: "utl-hybrid-ai-shield-26.firebaseapp.com",
+  messagingSenderId: "238775299331",
+};
+
 const FIREBASE_CONFIG = globalThis.UTL_FIREBASE_CONFIG || (() => {
   try {
     const saved = localStorage.getItem("utl_firebase_config");
-    return saved ? JSON.parse(saved) : null;
+    return saved ? JSON.parse(saved) : DEFAULT_FIREBASE_CONFIG;
   } catch {
-    return null;
+    return DEFAULT_FIREBASE_CONFIG;
   }
 })();
 
 let identityVerified = false;
 let signingKeyPair = null;
 let firebaseAIModel = null;
+let fbAuth = null;
+let fbDb = null;
+let fbUser = null;
+let fbPhoneConfirmation = null;
+let fbRecaptchaVerifier = null;
+let lastSignedEnvelope = null;
 
 async function initFirebaseHybridLogic() {
   const infoEl = document.getElementById("ai-backend-info");
+  const authBadge = document.getElementById("fb-auth-status");
+  const syncInfo = document.getElementById("fb-sync-info");
   if (FIREBASE_CONFIG && FIREBASE_CONFIG.apiKey) {
     try {
-      const [{ initializeApp }, { getAI, getGenerativeModel, GoogleAIBackend }] = await Promise.all([
+      const [
+        { initializeApp },
+        { getAI, getGenerativeModel, GoogleAIBackend },
+        authMod,
+        fsMod,
+      ] = await Promise.all([
         import("https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js"),
         import("https://www.gstatic.com/firebasejs/12.0.0/firebase-ai.js"),
+        import("https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js"),
+        import("https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js"),
       ]);
       const app = initializeApp(FIREBASE_CONFIG);
+      fbAuth = authMod.getAuth(app);
+      fbDb = fsMod.getFirestore(app);
+
+      authMod.onAuthStateChanged(fbAuth, (user) => {
+        fbUser = user;
+        const signOutBtn = document.getElementById("btn-fb-signout");
+        if (user) {
+          authBadge.textContent = `Signed In: ${user.email || user.phoneNumber || user.uid.slice(0, 8)}`;
+          authBadge.className = "badge ok";
+          if (signOutBtn) signOutBtn.style.display = "inline-block";
+        } else {
+          authBadge.textContent = "Signed Out (Guest / Local-Only)";
+          authBadge.className = "badge warn";
+          if (signOutBtn) signOutBtn.style.display = "none";
+        }
+      });
+
+      document.getElementById("btn-google-signin")?.addEventListener("click", async () => {
+        try {
+          const provider = new authMod.GoogleAuthProvider();
+          await authMod.signInWithPopup(fbAuth, provider);
+          syncInfo.textContent = "Google Sign-In succeeded.";
+        } catch (e) {
+          syncInfo.textContent = `Google Sign-In error: ${e.message}`;
+        }
+      });
+
+      document.getElementById("btn-email-signin")?.addEventListener("click", async () => {
+        const email = document.getElementById("fb-email")?.value?.trim();
+        const pass = document.getElementById("fb-password")?.value || "";
+        if (!email || !pass) return (syncInfo.textContent = "Enter email and password.");
+        try {
+          await authMod.signInWithEmailAndPassword(fbAuth, email, pass);
+          syncInfo.textContent = "Email Sign-In succeeded.";
+        } catch (e) {
+          syncInfo.textContent = `Email Sign-In error: ${e.message}`;
+        }
+      });
+
+      document.getElementById("btn-email-signup")?.addEventListener("click", async () => {
+        const email = document.getElementById("fb-email")?.value?.trim();
+        const pass = document.getElementById("fb-password")?.value || "";
+        if (!email || pass.length < 6) return (syncInfo.textContent = "Enter email and password (min 6 chars).");
+        try {
+          await authMod.createUserWithEmailAndPassword(fbAuth, email, pass);
+          syncInfo.textContent = "Account created and signed in.";
+        } catch (e) {
+          syncInfo.textContent = `Sign-Up error: ${e.message}`;
+        }
+      });
+
+      document.getElementById("btn-phone-send")?.addEventListener("click", async () => {
+        const phone = document.getElementById("fb-phone")?.value?.trim();
+        if (!phone) return (syncInfo.textContent = "Enter phone number with country code, e.g. +420...");
+        try {
+          if (!fbRecaptchaVerifier) {
+            fbRecaptchaVerifier = new authMod.RecaptchaVerifier(fbAuth, "recaptcha-container", { size: "invisible" });
+          }
+          fbPhoneConfirmation = await authMod.signInWithPhoneNumber(fbAuth, phone, fbRecaptchaVerifier);
+          syncInfo.textContent = "SMS verification code sent.";
+        } catch (e) {
+          syncInfo.textContent = `Phone SMS error: ${e.message}`;
+        }
+      });
+
+      document.getElementById("btn-phone-verify")?.addEventListener("click", async () => {
+        const code = document.getElementById("fb-sms-code")?.value?.trim();
+        if (!fbPhoneConfirmation || !code) return (syncInfo.textContent = "Send SMS first and enter the 6-digit code.");
+        try {
+          await fbPhoneConfirmation.confirm(code);
+          syncInfo.textContent = "Phone verified and signed in.";
+        } catch (e) {
+          syncInfo.textContent = `Code verify error: ${e.message}`;
+        }
+      });
+
+      document.getElementById("btn-fb-signout")?.addEventListener("click", async () => {
+        await authMod.signOut(fbAuth);
+        syncInfo.textContent = "Signed out.";
+      });
+
+      document.getElementById("btn-firestore-save")?.addEventListener("click", async () => {
+        if (!fbUser) return (syncInfo.textContent = "Sign in first to save to Firestore.");
+        if (!lastSignedEnvelope) return (syncInfo.textContent = "Submit and sign the form first.");
+        try {
+          const docId = `proof_${Date.now()}`;
+          await fsMod.setDoc(fsMod.doc(fbDb, "users", fbUser.uid, "form_templates", docId), {
+            ...lastSignedEnvelope,
+            createdAt: new Date().toISOString(),
+          });
+          syncInfo.textContent = `Saved to Firestore: users/${fbUser.uid}/form_templates/${docId}`;
+        } catch (e) {
+          syncInfo.textContent = `Firestore save error: ${e.message}`;
+        }
+      });
+
+      document.getElementById("btn-firestore-load")?.addEventListener("click", async () => {
+        if (!fbUser) return (syncInfo.textContent = "Sign in first to load from Firestore.");
+        try {
+          const snap = await fsMod.getDocs(fsMod.collection(fbDb, "users", fbUser.uid, "form_templates"));
+          const items = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+          document.getElementById("output-log").textContent = JSON.stringify({ firestoreProofs: items }, null, 2);
+          syncInfo.textContent = `Loaded ${items.length} signed proof(s) from Firestore.`;
+        } catch (e) {
+          syncInfo.textContent = `Firestore load error: ${e.message}`;
+        }
+      });
+
       const ai = getAI(app, { backend: new GoogleAIBackend() });
       firebaseAIModel = getGenerativeModel(ai, {
         model: "gemini-3.8-flash",
         mode: "prefer_on_device",
       });
-      infoEl.textContent = "Active backend: Firebase AI Logic SDK (PREFER_ON_DEVICE -> Gemini Nano / Flash).";
+      infoEl.textContent = "Active backend: Firebase Auth + Firestore + Firebase AI Logic SDK (PREFER_ON_DEVICE -> Gemini Nano / gemini-3.8-flash).";
       return;
     } catch (err) {
       infoEl.textContent = `Firebase SDK fallback (${err.message}). Using local Chrome Built-in AI / demo layer.`;
@@ -253,6 +384,8 @@ document.getElementById("hybrid-form").addEventListener("submit", async (e) => {
       cloudflareAttestation = { status: "offline-fallback" };
     }
   }
+
+  lastSignedEnvelope = { ...envelope, cryptoProof, cloudflareAttestation };
 
   document.getElementById("output-log").textContent = JSON.stringify(
     { ...envelope, localVaultInfo, cryptoProof, cloudflareAttestation },

@@ -1,0 +1,25 @@
+name: Build iOS & Android (UTL Hybrid AI Shield)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+    paths:
+      - 'web/**'
+      - 'ios/**'
+      - 'android/**'
+
+jobs:
+  ios-build:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: npm ci
+      - run: npx cap sync ios
+      - name: Build iOS (unsigned archive)
+        run: |
+          cd ios/App
+          xcodebuild -project App.xcodeproj -scheme App -sdk iphoneos -configuration Release CODE_SIGNING_ALLOWED=NO build

@@ -103,6 +103,45 @@
     </section>
 
     <section class="card">
+      <h2>0. Firebase Authentication &amp; Firestore Sync</h2>
+      <div class="row" style="margin-bottom: 0.75rem;">
+        <span id="fb-auth-status" class="badge warn">Signed Out (Guest / Local-Only)</span>
+        <button id="btn-google-signin" type="button">Sign in with Google</button>
+        <button id="btn-fb-signout" class="secondary" type="button" style="display:none;">Sign Out</button>
+      </div>
+      <div class="grid" style="margin-bottom: 0.75rem;">
+        <div>
+          <label for="fb-email">Email / Password Auth</label>
+          <div class="row">
+            <input id="fb-email" type="email" placeholder="you@example.com" style="flex:1; min-width:140px;" />
+            <input id="fb-password" type="password" placeholder="Password (min 6 chars)" style="flex:1; min-width:140px;" />
+          </div>
+          <div class="row" style="margin-top:0.5rem;">
+            <button id="btn-email-signin" class="secondary" type="button">Sign In</button>
+            <button id="btn-email-signup" class="secondary" type="button">Create Account</button>
+          </div>
+        </div>
+        <div>
+          <label for="fb-phone">Phone Auth (SMS)</label>
+          <div class="row">
+            <input id="fb-phone" type="tel" placeholder="+420123456789" style="flex:1; min-width:140px;" />
+            <button id="btn-phone-send" class="secondary" type="button">Send SMS</button>
+          </div>
+          <div class="row" style="margin-top:0.5rem;">
+            <input id="fb-sms-code" type="text" placeholder="6-digit SMS code" style="flex:1; min-width:140px;" />
+            <button id="btn-phone-verify" class="secondary" type="button">Verify Code</button>
+          </div>
+          <div id="recaptcha-container" style="margin-top:0.4rem;"></div>
+        </div>
+      </div>
+      <div class="row">
+        <button id="btn-firestore-save" class="secondary" type="button">Save Last Signed Proof to Firestore</button>
+        <button id="btn-firestore-load" class="secondary" type="button">Load My Firestore Proofs</button>
+        <small id="fb-sync-info" style="color: var(--muted);"></small>
+      </div>
+    </section>
+
+    <section class="card">
       <h2>1. Cryptographic Identity Verification &amp; Routing Mode</h2>
       <div class="row">
         <button id="btn-auth" type="button">Unlock with Biometrics / Passkey (WebAuthn + ECDSA P-256)</button>

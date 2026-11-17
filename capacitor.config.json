@@ -1,0 +1,8 @@
+{
+  "appId": "online.web4light.utlhybrid",
+  "appName": "UTL Hybrid AI Shield",
+  "webDir": "web",
+  "server": {
+    "androidScheme": "https"
+  }
+}

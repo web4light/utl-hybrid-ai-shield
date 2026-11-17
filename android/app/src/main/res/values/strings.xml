@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">UTL Hybrid AI Shield</string>
+    <string name="title_activity_main">UTL Hybrid AI Shield</string>
+    <string name="package_name">online.web4light.utlhybrid</string>
+    <string name="custom_url_scheme">online.web4light.utlhybrid</string>
+</resources>

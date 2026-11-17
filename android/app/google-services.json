@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "238775299331",
+    "project_id": "utl-hybrid-ai-shield-26",
+    "storage_bucket": "utl-hybrid-ai-shield-26.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:238775299331:android:51aeb75277a9774b7c4d36",
+        "android_client_info": {
+          "package_name": "online.web4light.utlhybrid"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAFymvbzDwVEogpMaNvtb1lg-_kQe2CIf4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
