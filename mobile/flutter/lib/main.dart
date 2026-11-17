@@ -50,7 +50,7 @@ class _HybridFormScreenState extends State<HybridFormScreen> {
 
     try {
       final model = FirebaseAI.googleAI().generativeModel(
-        model: 'gemini-2.5-flash',
+        model: 'gemini-3.8-flash',
       );
       final res = await model.generateContent([
         Content.text('Translate strictly from Czech to English: $text'),

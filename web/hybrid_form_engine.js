@@ -31,7 +31,7 @@ async function initFirebaseHybridLogic() {
       const app = initializeApp(FIREBASE_CONFIG);
       const ai = getAI(app, { backend: new GoogleAIBackend() });
       firebaseAIModel = getGenerativeModel(ai, {
-        model: "gemini-2.5-flash",
+        model: "gemini-3.8-flash",
         mode: "prefer_on_device",
       });
       infoEl.textContent = "Active backend: Firebase AI Logic SDK (PREFER_ON_DEVICE -> Gemini Nano / Flash).";
